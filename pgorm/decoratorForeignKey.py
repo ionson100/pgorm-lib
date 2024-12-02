@@ -5,16 +5,17 @@ from pgorm import Session
 from pgorm.hostitem import get_host_base, HostItem
 from pgorm.builderSelect import get_sql_select
 from pgorm.logAction import PrintFree
-from pgorm.orm import OrmConnectionNotPool
 from pgorm.session import _builder_object_from_type
 
 
-def getRelatives(cls: type,fk:str, add_where: str = None,
-               params: Sequence | Mapping[str, Any] | None = None):
+def getRelatives(cls: type, fk:str, where_and: str = None,
+                 params: Sequence | Mapping[str, Any] | None = None):
+
     def decorator(func):
         def wrapper(self,session:Session):
             try:
-                #PrintFree(f"ORM DECORATOR: arguments: {cls}, {fk}, {add_where}, {params}, {type(self)}")
+                if session is None:
+                    raise Exception(f'You did not specify the required parameter session in the  {func.__name__} function')
                 host: HostItem = get_host_base().get_hist_type(type(self))
                 name_key = host.pk_property_name
                 host_core = get_host_base().get_hist_type(cls)
@@ -25,8 +26,8 @@ def getRelatives(cls: type,fk:str, add_where: str = None,
                     p = []
                     sql = get_sql_select(cls, host_core) + f"WHERE {fk} = %s "
                     p.append(value_key)
-                    if add_where is not None:
-                        sql += add_where
+                    if where_and is not None:
+                        sql += where_and
                     sql += ';'
 
                     if params is not None:

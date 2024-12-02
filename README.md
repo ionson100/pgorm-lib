@@ -481,6 +481,82 @@ ORM SESSION: select:('SELECT "id", "array", "dict", "inner", "date" FROM "json" 
 id-1, array-[1, 2, 3, 4], dict-{'age': 34, 'name': 'name'}, my_date-2024-12-01 00:00:00, inner-{'age': 22, 'name': 'sd'}
 """
 ```
+#### Использование декоратора для получение родственных записей по ссылке на первичный ключ @getRelatives
+```python
+from uuid import uuid4
+from pgorm import MapBuilder, OrmConnectionPool, set_print, ColorPrint, getRelatives, Session
+
+set_print(True,ColorPrint.CYAN)
+
+
+class UserFriends:
+    id: str
+    name: str
+    id_user: str
+
+    def __init__(self, name: str = 'friend'):
+        self.name = name
+        self.id = str(uuid4())
+    def __str__(self):
+        return f'{self.id} name:{self.name}'
+
+
+b = MapBuilder(UserFriends, "user_friends")
+b.AppendField(name_field="id", name_column="id", type_column="uuid",
+              default="primary key", is_pk=True, use_server_generation=False)
+b.AppendField(name_field="name", name_column="name", type_column='TEXT', default='NULL')
+b.AppendField(name_field="id_user", name_column="id_user", type_column="uuid", default="null")
+b.ValidateMap()
+
+class User:
+    id:str
+    name:str
+
+    @getRelatives(UserFriends,'id_user','and name = %s',['name-1'])
+    def getFriends(self, current_session:Session)->list[UserFriends]:
+        pass
+
+    def __init__(self,name="ion"):
+        self.name = name
+        self.id=str(uuid4())
+b=MapBuilder(User,"user")
+b.AppendField(name_field="id",name_column="id",type_column="uuid",
+              default="primary key",is_pk=True,use_server_generation=False)
+b.AppendField(name_field="name",name_column="name",type_column='TEXT',default='NULL')
+b.ValidateMap()
+
+
+
+
+
+
+OrmConnectionPool.init(type_pool=0,minconn=1,maxconn=10,password='postgres',
+                       host='localhost', port=5432, user='postgres1', database='test',)
+with OrmConnectionPool.getContext() as ctx:
+    with OrmConnectionPool.getConnection() as connection:
+        with connection.getSession() as session:
+            session.dropTable(User,True)
+            session.createTable(User,True)
+
+            session.dropTable(UserFriends,True)
+            session.createTable(UserFriends,True)
+            user=User()
+            session.insert(user)
+            l=[]
+            for i in range(10):
+                f=UserFriends(name=f'name-{i}')
+                f.id_user=user.id
+                l.append(f)
+            session.insertBulk(l)
+            for u in user.getFriends(session):
+                print(u)
+            #после первого обращения происходит запрос к базе данных
+            print('from base')
+            for u in user.getFriends(session):
+                print(u)
+            print('from cache')
+            #последующие запросы берутся из кеша
+```
 орм умеет посылать, объекты в виде json на хранение в базу данных в тип поля jdonb\
 c примитивными типами родной конвертор справляется легко, а кастомными не может, \
 по этому ваш тип должен реализовывать метод toJson который возвращает строку json.
@@ -495,6 +571,11 @@ c примитивными типами родной конвертор спра
 все модели должны иметь один первичный ключ \
 при инициализации модели конструктор не должен иметь обязательных параметров\
 декоратор dataclass уместен. \
+#### install
+```python
+pip install git+https://github.com/ionson100/pgorm-lib
+
+```
 
 
 

@@ -1,7 +1,7 @@
 from uuid import uuid4
 from pgorm import MapBuilder, OrmConnectionPool, set_print, ColorPrint, getRelatives, Session
 
-set_print(True,ColorPrint.GREEN)
+set_print(True,ColorPrint.CYAN)
 
 
 class UserFriends:
@@ -27,10 +27,12 @@ class User:
     id:str
     name:str
 
-    @getRelatives(UserFriends,'id_user')
-    def getFriends(self,session:Session):
+    @getRelatives(UserFriends,'id_user','and name = %s',['name-1'])
+    def getFriends(self, current_session:Session)->list[UserFriends]:
         pass
+
     def __init__(self,name="ion"):
+        self.name = name
         self.id=str(uuid4())
 b=MapBuilder(User,"user")
 b.AppendField(name_field="id",name_column="id",type_column="uuid",
@@ -44,7 +46,7 @@ b.ValidateMap()
 
 
 OrmConnectionPool.init(type_pool=0,minconn=1,maxconn=10,password='postgres',
-                       host='192.168.70.119', port=5432, user='postgres', database='test',)
+                       host='localhost', port=5432, user='postgres1', database='test',)
 with OrmConnectionPool.getContext() as ctx:
     with OrmConnectionPool.getConnection() as connection:
         with connection.getSession() as session:
@@ -53,16 +55,20 @@ with OrmConnectionPool.getContext() as ctx:
 
             session.dropTable(UserFriends,True)
             session.createTable(UserFriends,True)
-            user=User();
+            user=User()
             session.insert(user)
-            l=[];
+            l=[]
             for i in range(10):
-                f=UserFriends(name=f'name-{i}');
+                f=UserFriends(name=f'name-{i}')
                 f.id_user=user.id
                 l.append(f)
             session.insertBulk(l)
             for u in user.getFriends(session):
                 print(u)
+            print('from base')
+            for u in user.getFriends(session):
+                print(u)
+            print('from cache')
 
 
 
