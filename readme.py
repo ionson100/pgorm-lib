@@ -3,8 +3,9 @@ from uuid import uuid4
 
 from pgorm import OrmConnectionPool, ColorPrint
 from pgorm import set_print, MapBuilder
+set_print(True,ColorPrint.GREEN)
 
-set_print(True,ColorPrint.BLUE)  # говорит что нужно печатать все запросы в консоль
+  # говорит что нужно печатать все запросы в консоль
 
 
 
