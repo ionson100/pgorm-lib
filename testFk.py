@@ -46,7 +46,7 @@ b.ValidateMap()
 
 
 OrmConnectionPool.init(type_pool=0,minconn=1,maxconn=10,password='postgres',
-                       host='localhost', port=5432, user='postgres1', database='test',)
+                       host='192.168.70.119', port=5432, user='postgres', database='test',)
 with OrmConnectionPool.getContext() as ctx:
     with OrmConnectionPool.getConnection() as connection:
         with connection.getSession() as session:
